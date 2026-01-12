@@ -38,6 +38,7 @@ dependencies {
     implementation("ch.qos.logback:logback-classic:1.4.11")
 
     implementation("com.alibaba:fastjson:2.0.60")
+    implementation("com.fasterxml.jackson.core:jackson-databind:2.20.1")
     implementation("org.yaml:snakeyaml:2.5")
 
     implementation("co.cask.common:common-io:0.11.0")

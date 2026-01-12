@@ -17,9 +17,9 @@ public class ProcessorHandler implements AbstractHandler {
     private final IndexHandler indexHandler;
     private final DocumentHandler documentHandler;
 
-    public ProcessorHandler() {
-        this.indexHandler = new IndexHandler();
-        this.documentHandler = new DocumentHandler();
+    public ProcessorHandler(IndexHandler indexHandler, DocumentHandler documentHandler) {
+        this.indexHandler = indexHandler;
+        this.documentHandler = documentHandler;
     }
 
     @Override

@@ -5,6 +5,7 @@ import com.twelvemonkeys.lang.StringUtil;
 import io.netty.handler.codec.http.HttpMethod;
 import lombok.AllArgsConstructor;
 import lombok.Data;
+import lombok.ToString;
 
 import java.util.List;
 import java.util.Map;
@@ -18,6 +19,7 @@ import java.util.Map;
  */
 @Data
 @AllArgsConstructor
+@ToString
 public class RequestContext {
 
     private Map<String, List<String>> pathParams;
