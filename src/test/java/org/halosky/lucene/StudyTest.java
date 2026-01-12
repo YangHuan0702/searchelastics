@@ -22,7 +22,6 @@ import java.util.List;
 public class StudyTest {
 
 
-
     @Test
     public void writeTest() throws IOException {
         // 分词器
