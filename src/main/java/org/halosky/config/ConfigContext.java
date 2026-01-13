@@ -2,8 +2,6 @@ package org.halosky.config;
 
 import lombok.Data;
 
-import java.util.Map;
-
 /**
  * packageName org.halosky.config
  *
@@ -23,5 +21,6 @@ public class ConfigContext {
     private PathConfig path;
     private RecoveryConfig recovery;
     private TransportTcpConfig tcp;
+    private ZkConfig zk;
 
 }

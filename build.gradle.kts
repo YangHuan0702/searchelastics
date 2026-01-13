@@ -29,6 +29,8 @@ dependencies {
     implementation("cn.shenyanchao.ik-analyzer:ik-analyzer:9.0.0")
 
     implementation("io.netty:netty-all:4.1.118.Final")
+    implementation("org.apache.curator:curator-recipes:5.1.0")
+    implementation("org.apache.zookeeper:zookeeper:3.8.5")
 
     implementation("com.google.guava:guava:33.5.0-jre")
     implementation("com.twelvemonkeys.common:common-lang:3.13.0")

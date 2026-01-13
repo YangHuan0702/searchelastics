@@ -8,12 +8,12 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.HttpObjectAggregator;
-import io.netty.handler.codec.http.HttpRequestDecoder;
 import io.netty.handler.codec.http.HttpServerCodec;
 import lombok.extern.slf4j.Slf4j;
-import org.halosky.config.HttpConfig;
-import org.halosky.config.NetworkConfig;
+import org.halosky.config.Config;
 import org.halosky.handler.ProcessorHandler;
+import org.halosky.server.ZkServerManager;
+import org.halosky.shard.ShardManager;
 
 /**
  * packageName org.halosky.http
@@ -25,28 +25,26 @@ import org.halosky.handler.ProcessorHandler;
 @Slf4j
 public class HttpServer {
 
-
-    private final HttpConfig httpConfig;
-
-    private final NetworkConfig networkConfig;
-
     private final EventLoopGroup bossGroup;
     private final EventLoopGroup workerGroup;
 
     private final HttpHandler httpHandler;
+    private final Config config;
+    private final ShardManager shardManager;
 
+    private final ZkServerManager zkServerManager;
 
-    public HttpServer(HttpConfig httpConfig,NetworkConfig networkConfig) {
-        log.info("[HttpServer] http server is starting, config: [{}]", httpConfig);
-        this.httpConfig = httpConfig;
-        this.networkConfig = networkConfig;
+    public HttpServer(Config config,ShardManager shardManager) throws Exception {
+        log.info("[HttpServer] http server is starting, config: [{}]", config);
+        this.config = config;
+        this.zkServerManager = new ZkServerManager(config);
 
         bossGroup = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();
 
-        ProcessorHandler processorHandler = new ProcessorHandler();
+        this.shardManager = shardManager;
+        ProcessorHandler processorHandler = new ProcessorHandler(this.shardManager);
         httpHandler = new HttpHandler(processorHandler);
-
     }
 
     public void start() {
@@ -62,8 +60,8 @@ public class HttpServer {
                     }
                 });
         try {
-            ChannelFuture sync = serverBootstrap.bind(networkConfig.getHost(),httpConfig.getPort()).sync();
-            log.info("[HttpServer] http server started on host [{}] and port [{}]", networkConfig.getHost(),httpConfig.getPort());
+            ChannelFuture sync = serverBootstrap.bind(config.getNetworkConfig().getHost(),config.getHttpConfig().getPort()).sync();
+            log.info("[HttpServer] http server started on host [{}] and port [{}]", config.getNetworkConfig().getHost(),config.getHttpConfig().getPort());
             sync.channel().closeFuture().sync();
         }catch (Exception e){
             log.error("[HttpServer] http server start error {}",e.getMessage(),e);
@@ -72,7 +70,7 @@ public class HttpServer {
     }
 
 
-    public void stop() {
+    public void close() {
         bossGroup.shutdownGracefully();
         workerGroup.shutdownGracefully();
     }

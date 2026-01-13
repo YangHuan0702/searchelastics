@@ -1,6 +1,6 @@
 #配置es的集群名称，默认是elasticsearch，es会自动发现在同一网段下的es，如果在同一网段下有多个集群，就可以用这个属性来区分不同的集群。
 cluster:
-  name: elasticsearch
+  name: searchelastics
 
 node:
   #节点名，默认随机指定一个name列表中名字，该列表在es的jar包中config文件夹里name.txt文件中，其中有很多作者添加的有趣名字。
@@ -66,3 +66,10 @@ recovery:
   #设置数据恢复时限制的带宽，如入100mb，默认为0，即无限制。
   concurrentStreams: 5
 
+zk:
+  url: 106.53.83.52:2181
+  sessionTimeout: 30
+  connectionTimeout: 15
+  namespace: SE
+  retryNum: 3
+  retryDelayMs: 1000

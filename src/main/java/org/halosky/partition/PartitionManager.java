@@ -8,4 +8,5 @@ package org.halosky.partition;
  * @date 2026/1/12
  */
 public class PartitionManager {
+    // NO implementation
 }

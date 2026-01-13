@@ -9,7 +9,7 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.*;
-import org.halosky.config.ConfigContext;
+import org.halosky.config.Config;
 import org.halosky.handler.IndexSetting;
 import org.halosky.query.QueryNode;
 import org.halosky.query.QueryParse;
@@ -32,14 +32,14 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Slf4j
 public class StorageManager {
 
-    private final ConfigContext config;
+    private final Config config;
 
     private final ReadWriteLock lock = new ReentrantReadWriteLock();
 
     private final Map<String, IndexMetadata> indexMap = new ConcurrentHashMap<>();
 
 
-    public StorageManager(ConfigContext config) {
+    public StorageManager(Config config) {
         this.config = config;
     }
 
@@ -48,15 +48,14 @@ public class StorageManager {
         lock.writeLock().lock();
         try {
             if (indexMap.containsKey(indexName)) {
-                throw new RuntimeException("index already exists");
+                return;
             }
 
-            String data = config.getPath().getData();
+            String data = config.getPathConfig().getData();
             String indexDir = data + "/" + indexName;
 
             IndexMetadata indexMetadata = new IndexMetadata(indexSetting, Path.of(indexDir), indexName);
             indexMap.put(indexName, indexMetadata);
-
         } finally {
             lock.writeLock().unlock();
         }
@@ -88,7 +87,22 @@ public class StorageManager {
     public record DocumentInsertRes(long count, Document document) {
     }
 
+    private void ifAboutCreateIndex(String indexName) throws IOException {
+        if(!indexMap.containsKey(indexName)) {
+            this.addIndex(indexName,null);
+        }
+    }
+
+    public void addDocuments(String indexName,List<JSONObject> jsonObject) throws IOException {
+        ifAboutCreateIndex(indexName);
+        if(Objects.isNull(jsonObject) || jsonObject.isEmpty()) return;
+        for (JSONObject object : jsonObject) {
+            addDocument(indexName,object);
+        }
+    }
+
     public Object addDocument(String indexName, JSONObject jsonObject) throws IOException {
+        ifAboutCreateIndex(indexName);
         log.info("[StorageManager] Adding document [{}], json:[{}]", indexName, jsonObject);
         lock.writeLock().lock();
         Document document;
@@ -156,6 +170,7 @@ public class StorageManager {
         }
         if (!existsPrimaryField) {
             document.add(new KeywordField(PRIMARY_FIELD_NAME, UUID.randomUUID().toString().replaceAll("-", ""), Field.Store.YES));
+            throw new NullPointerException("document don`t exists primary key for 'id'.");
         }
         return document;
     }
@@ -166,6 +181,7 @@ public class StorageManager {
 
 
     private FetchDocumentResult fetchDocumentFromId(String indexName, String documentId) throws Exception {
+        ifAboutCreateIndex(indexName);
         lock.readLock().lock();
         Document doc = null;
         int targetDocumentId = -1;
@@ -198,6 +214,7 @@ public class StorageManager {
 
 
     public Document deleteDocument(String indexName, String documentId) throws Exception {
+        this.ifAboutCreateIndex(indexName);
         lock.writeLock().lock();
         Document doc;
         try {
@@ -213,12 +230,15 @@ public class StorageManager {
     }
 
 
-    public record QueryResult(List<Document> docs,TotalHits totalHits){};
+    public record QueryResult(List<Document> docs, TotalHits totalHits) {
+    }
+
+    ;
 
 
     public Object query(String indexName, String json) {
-        log.info("[StorageManager] query handler indexName:[{}], queryJson:[{}]",indexName,json);
-        if(!indexMap.containsKey(indexName) || Objects.isNull(json) || json.isEmpty()) {
+        log.info("[StorageManager] query handler indexName:[{}], queryJson:[{}]", indexName, json);
+        if (!indexMap.containsKey(indexName) || Objects.isNull(json) || json.isEmpty()) {
             throw new NullPointerException("index is not exists or query for json-params is empty.");
         }
 
@@ -227,7 +247,7 @@ public class StorageManager {
             JsonNode jsonNode = mapper.readTree(json);
 
             QueryNode ast = QueryParse.parse(jsonNode);
-            if(Objects.isNull(ast)) {
+            if (Objects.isNull(ast)) {
                 log.error("[StorageManager] query json-params is empty.]");
                 throw new NullPointerException("query json-params is empty.");
             }
@@ -246,11 +266,11 @@ public class StorageManager {
                 Document hitDoc = storedFields.document(scoreDoc.doc);
                 docs.add(hitDoc);
             }
-            return new QueryResult(docs,totalHits);
-        }catch (Exception e) {
-            log.error("[StorageManager] query exception, query index name [{}] DSL [{}] : {}", indexName, json, e.getMessage(),e);
+            return new QueryResult(docs, totalHits);
+        } catch (Exception e) {
+            log.error("[StorageManager] query exception, query index name [{}] DSL [{}] : {}", indexName, json, e.getMessage(), e);
         }
-        return new QueryResult(null,null);
+        return new QueryResult(null, null);
     }
 
 }

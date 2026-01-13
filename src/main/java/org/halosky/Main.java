@@ -10,13 +10,13 @@ public class Main {
         HttpServer server = null;
         try{
             Config config = new Config(Config.DEFAULT_CONFIG_FILE_NAME);
-            server = new HttpServer(config.getHttpConfig(),config.getNetworkConfig());
+            server = new HttpServer(config,null);
             server.start();
         }catch (Exception e){
             e.printStackTrace();
         } finally {
             if(Objects.nonNull(server)){
-                server.stop();
+                server.close();
             }
         }
         System.out.println("Hello world!");

@@ -8,10 +8,6 @@ import org.yaml.snakeyaml.constructor.Constructor;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -40,6 +36,35 @@ public class Config {
     }
 
 
+    public PathConfig getPathConfig() {
+        if(Objects.isNull(configContext)){
+            throw new NullPointerException("[Config]configContext is null,unread to http config.");
+        }
+        return configContext.getPath();
+    }
+
+    public NodeConfig getNodeConfig() {
+        if(Objects.isNull(configContext)){
+            throw new NullPointerException("[Config]configContext is null,unread to http config.");
+        }
+        return configContext.getNode();
+    }
+
+
+    public ClusterConfig getClusterConfig() {
+        if(Objects.isNull(configContext)){
+            throw new NullPointerException("[Config]configContext is null,unread to http config.");
+        }
+        return configContext.getCluster();
+    }
+
+    public ZkConfig getZkConfig() {
+        if(Objects.isNull(configContext)){
+            throw new NullPointerException("[Config]configContext is null,unread to http config.");
+        }
+        return configContext.getZk();
+    }
+
     public HttpConfig getHttpConfig() {
         if(Objects.isNull(configContext)){
             throw new NullPointerException("[Config]configContext is null,unread to http config.");
@@ -56,4 +81,17 @@ public class Config {
     }
 
 
+    public TransportTcpConfig getTcpConfig() {
+        if(Objects.isNull(configContext)){
+            throw new NullPointerException("[Config]configContext is null,unread to network config.");
+        }
+        return configContext.getTcp();
+    }
+
+    public IndexConfig getIndexConfig() {
+        if(Objects.isNull(configContext)){
+            throw new NullPointerException("[Config]configContext is null,unread to network config.");
+        }
+        return configContext.getIndex();
+    }
 }
