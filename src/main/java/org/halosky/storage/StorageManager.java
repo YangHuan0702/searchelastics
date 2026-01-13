@@ -1,21 +1,23 @@
 package org.halosky.storage;
 
 import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.document.*;
 import org.apache.lucene.index.IndexableField;
+import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.TermQuery;
-import org.apache.lucene.search.TopDocs;
+import org.apache.lucene.search.*;
 import org.halosky.config.ConfigContext;
 import org.halosky.handler.IndexSetting;
+import org.halosky.query.QueryNode;
+import org.halosky.query.QueryParse;
 
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.nio.file.Path;
-import java.util.Map;
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
@@ -211,16 +213,44 @@ public class StorageManager {
     }
 
 
+    public record QueryResult(List<Document> docs,TotalHits totalHits){};
 
 
-    public Object query(String indexName, JSONObject json) {
+    public Object query(String indexName, String json) {
         log.info("[StorageManager] query handler indexName:[{}], queryJson:[{}]",indexName,json);
         if(!indexMap.containsKey(indexName) || Objects.isNull(json) || json.isEmpty()) {
             throw new NullPointerException("index is not exists or query for json-params is empty.");
         }
 
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode jsonNode = mapper.readTree(json);
 
-        return null;
+            QueryNode ast = QueryParse.parse(jsonNode);
+            if(Objects.isNull(ast)) {
+                log.error("[StorageManager] query json-params is empty.]");
+                throw new NullPointerException("query json-params is empty.");
+            }
+
+            Query luceneQuery = ast.toLuceneQuery();
+
+            IndexSearcher indexSearcher = indexMap.get(indexName).getIndexSearcher();
+            TopDocs search = indexSearcher.search(luceneQuery, 10);
+
+            ScoreDoc[] scoreDocs = search.scoreDocs;
+
+            TotalHits totalHits = search.totalHits;
+            StoredFields storedFields = indexSearcher.storedFields();
+            List<Document> docs = new ArrayList<>();
+            for (ScoreDoc scoreDoc : scoreDocs) {
+                Document hitDoc = storedFields.document(scoreDoc.doc);
+                docs.add(hitDoc);
+            }
+            return new QueryResult(docs,totalHits);
+        }catch (Exception e) {
+            log.error("[StorageManager] query exception, query index name [{}] DSL [{}] : {}", indexName, json, e.getMessage(),e);
+        }
+        return new QueryResult(null,null);
     }
 
 }
