@@ -46,4 +46,16 @@ public class HttpHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
         res.headers().set("Content-Length", res.content().readableBytes());
         ctx.writeAndFlush(res);
     }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        log.error("[HttpHandler] http-server error.",cause);
+
+        ProcessorHandler.HttpResp httpResp = new ProcessorHandler.HttpResp(500, cause.getMessage(),null);
+        FullHttpResponse res = new DefaultFullHttpResponse(HttpVersion.HTTP_1_1, HttpResponseStatus.OK,
+                Unpooled.wrappedBuffer(JSON.toJSONString(httpResp).getBytes()));
+        res.headers().set("Content-Type", "application/json");
+        res.headers().set("Content-Length", res.content().readableBytes());
+        ctx.writeAndFlush(res);
+    }
 }

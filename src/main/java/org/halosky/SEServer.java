@@ -9,6 +9,8 @@ import org.halosky.shard.RoutingManager;
 import org.halosky.shard.ShardManager;
 import org.halosky.storage.StorageManager;
 
+import java.util.Objects;
+
 /**
  * packageName org.halosky
  *
@@ -41,8 +43,15 @@ public class SEServer {
     }
 
 
+    public void start() {
+        httpServer.start();
+    }
+
+
     public void close(){
-        httpServer.close();
+        if(Objects.nonNull(httpServer)) {
+            httpServer.close();
+        }
         nodeServer.close();
         zkServerManager.close();
     }

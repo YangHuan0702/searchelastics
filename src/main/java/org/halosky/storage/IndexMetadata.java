@@ -3,18 +3,18 @@ package org.halosky.storage;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.cjk.CJKAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.halosky.handler.IndexSetting;
-import org.wltea.analyzer.lucene.IKAnalyzer;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
@@ -44,24 +44,30 @@ public class IndexMetadata {
 
     private AtomicLong count = new AtomicLong(0);
 
-    public static final Analyzer ANALYZER = new IKAnalyzer();
+    public static final Analyzer ANALYZER = new CJKAnalyzer();
 
     private final IndexSearcher indexSearcher;
 
-    public IndexMetadata(IndexSetting indexSettings, Path indexPath,String indexName) throws IOException {
+    private final SearcherManager searcherManager;
+
+    public void flushAfterWrite() throws IOException {
+        searcherManager.maybeRefresh();
+    }
+
+    public IndexMetadata(IndexSetting indexSettings, Path indexPath, String indexName) throws IOException {
         log.info("[IndexMetadata] initialization index-medaData settings:[{}], index-path:[{}] ", indexSettings, indexPath);
-        if (indexPath.toFile().exists()) {
-            Files.delete(indexPath);
-        }
+
 
         directory = FSDirectory.open(indexPath);
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(ANALYZER);
         indexWriter = new IndexWriter(directory, indexWriterConfig);
+        indexWriter.commit();
         this.indexSettings = indexSettings;
         this.indexName = indexName;
 
         directoryReader = DirectoryReader.open(directory);
         indexSearcher = new IndexSearcher(directoryReader);
+        searcherManager = new SearcherManager(indexWriter, null);
     }
 
 

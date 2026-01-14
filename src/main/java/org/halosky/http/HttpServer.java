@@ -32,12 +32,9 @@ public class HttpServer {
     private final Config config;
     private final ShardManager shardManager;
 
-    private final ZkServerManager zkServerManager;
-
     public HttpServer(Config config,ShardManager shardManager) throws Exception {
         log.info("[HttpServer] http server is starting, config: [{}]", config);
         this.config = config;
-        this.zkServerManager = new ZkServerManager(config);
 
         bossGroup = new NioEventLoopGroup();
         workerGroup = new NioEventLoopGroup();

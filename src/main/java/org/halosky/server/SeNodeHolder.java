@@ -17,6 +17,9 @@ import org.halosky.server.protocol.MessageEncoder;
 import org.halosky.server.protocol.SyncMessage;
 import org.halosky.storage.StorageManager;
 
+import java.nio.ByteBuffer;
+import java.nio.charset.StandardCharsets;
+
 /**
  * packageName org.halosky.server
  *
@@ -36,35 +39,30 @@ public class SeNodeHolder {
 
     private final ChannelFuture connection;
 
+    private final PingPongCoordinate pingPongCoordinate;
+
     public SeNodeHolder(String nodeName, ZkServerInfo targetNodeConfigInfo, Config config, StorageManager storageManager) throws InterruptedException {
         this.nodeName = nodeName;
         this.config = config;
+        this.pingPongCoordinate = PingPongCoordinate.getInstance();
 
         String host = targetNodeConfigInfo.getNetworkConfig().getHost();
         TransportTcpConfig tcpConfig = targetNodeConfigInfo.getTcpConfig();
 
-        log.info("[SeNodeHolder] connection to target node [{}] host: [{}] port: [{}]",nodeName,host,tcpConfig.getPort());
+        log.info("[SeNodeHolder] connection to target node [{}] host: [{}] port: [{}]", nodeName, host, tcpConfig.getPort());
 
         Bootstrap bootstrap = new Bootstrap();
         eventLoopGroup = new NioEventLoopGroup();
-        bootstrap.group(eventLoopGroup)
-                .channel(NioSocketChannel.class)
-                .handler(new ChannelInitializer<SocketChannel>() {
+        bootstrap.group(eventLoopGroup).channel(NioSocketChannel.class).handler(new ChannelInitializer<SocketChannel>() {
 
-                    @Override
-                    protected void initChannel(SocketChannel ch) {
-                        ch.pipeline()
-                                .addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4))
-                                .addLast(new MessageDecoder())
-                                .addLast(new MessageEncoder())
-                                .addLast(new NodeSyncHandler(storageManager));
+            @Override
+            protected void initChannel(SocketChannel ch) {
+                ch.pipeline().addLast(new LengthFieldBasedFrameDecoder(Integer.MAX_VALUE, 0, 4, 0, 4)).addLast(new MessageDecoder()).addLast(new MessageEncoder()).addLast(new NodeSyncHandler(storageManager));
 
-                    }
-                });
+            }
+        });
         connection = bootstrap.connect(host, tcpConfig.getPort()).sync();
     }
-
-
 
 
     public void syncNoRes(SyncMessage message) {
@@ -72,11 +70,24 @@ public class SeNodeHolder {
     }
 
 
+    public String send(SyncMessage message) throws Exception {
 
+        Long requestId = pingPongCoordinate.getRequestId();
+
+        byte[] payload = message.getPayload();
+        ByteBuffer wrap = ByteBuffer.allocate(payload.length + 8);
+        wrap.put(payload);
+        wrap.putLong(requestId);
+        message.setPayload(wrap.array());
+
+        SyncMessage syncMessage = pingPongCoordinate.addWatcherRequest(connection.channel(), message, requestId);
+        return new String(syncMessage.getPayload(), StandardCharsets.UTF_8);
+    }
 
 
     public void close() {
         connection.channel().close();
         eventLoopGroup.shutdownGracefully();
     }
+
 }

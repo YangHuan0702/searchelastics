@@ -18,13 +18,13 @@ index:
 
 path:
   #设置索引数据的存储路径，默认是es根目录下的data文件夹，可以设置多个存储路径，用逗号隔开，例： path.data: /path/to/data1,/path/to/data2
-  data: /path/to/data
+  data: D:/searchelastics/node1/data
   #设置临时文件的存储路径，默认是es根目录下的work文件夹。
-  work: /path/to/work
+  work: D:/searchelastics/node1/work
   #设置日志文件的存储路径，默认是es根目录下的logs文件夹
-  logs: /path/to/logs
+  logs: D:/searchelastics/node1/logs
   #设置插件的存放路径，默认是es根目录下的plugins文件夹
-  plugins: /path/to/plugins
+  plugins: D:/searchelastics/node1/plugins
 
 network:
   #设置绑定的ip地址，可以是ipv4或ipv6的，默认为0.0.0.0。
@@ -36,7 +36,7 @@ network:
 
 tcp:
   #设置节点间交互的tcp端口，默认是9300。
-  port: 9300
+  port: 9201
   #设置是否压缩tcp传输时的数据，默认为false，不压缩。
   compress: true
 

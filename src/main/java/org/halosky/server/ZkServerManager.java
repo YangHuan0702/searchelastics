@@ -134,7 +134,7 @@ public class ZkServerManager {
             throw new RuntimeException("[ZkServerManager] zk-client is not start.");
         }
         log.info("[ZkServerManager] get target node [{}] of info config.",nodeName);
-        ClusterNodeInfo children = getChildren(nodeName);
+        ClusterNodeInfo children = getChildren("/"+config.getClusterConfig().getName());
 
         for(Map.Entry<String, String> entry : children.nodeInfoMap.entrySet()) {
             if(entry.getKey().equals(nodeName)) return entry.getValue();

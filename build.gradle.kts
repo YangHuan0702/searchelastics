@@ -26,7 +26,6 @@ dependencies {
     implementation("org.apache.lucene:lucene-core:10.3.2")
     implementation("org.apache.lucene:lucene-queryparser:10.3.2")
     implementation("org.apache.lucene:lucene-analysis-common:10.3.2")
-    implementation("cn.shenyanchao.ik-analyzer:ik-analyzer:9.0.0")
 
     implementation("io.netty:netty-all:4.1.118.Final")
     implementation("org.apache.curator:curator-recipes:5.1.0")

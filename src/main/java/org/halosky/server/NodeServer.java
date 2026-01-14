@@ -127,4 +127,34 @@ public class NodeServer {
         boos.shutdownGracefully();
         work.shutdownGracefully();
     }
+
+    public String syncQueryDocument(String indexName, String dsl,String nodeName) throws Exception {
+        log.info("[NodeServer] sync query-documents to target node [{}], indexName: [{}], dsl: [{}]", nodeName, indexName, dsl);
+        connectionToTargetNode(nodeName);
+
+        SeNodeHolder seNodeHolder = clients.get(nodeName);
+
+        SyncMessage message = new SyncMessage();
+        message.setCmd(CmdOperator.FET_DOCUMENT.getCode());
+
+        int indexLength = indexName.length();
+        byte[] indexBytes = indexName.getBytes(StandardCharsets.UTF_8);
+
+        byte[] bytes = dsl.getBytes(StandardCharsets.UTF_8);
+        int payloadLength = bytes.length;
+
+        ByteBuffer allocate = ByteBuffer.allocate(8 + indexBytes.length + payloadLength);
+        allocate.putInt(indexLength);
+        allocate.put(indexBytes);
+        allocate.putInt(payloadLength);
+        allocate.put(bytes);
+
+        message.setPayload(allocate.array());
+
+        String send = seNodeHolder.send(message);
+        log.info("[NodeServer] remo-call document query for index: [{}],dsl: [{}],res: [{}]",indexName,dsl,send);
+        return send;
+    }
+
+
 }

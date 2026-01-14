@@ -1,6 +1,8 @@
 package org.halosky.shard;
 
 import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson2.JSON;
+import com.twelvemonkeys.lang.StringUtil;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
 import org.halosky.config.Config;
@@ -8,10 +10,7 @@ import org.halosky.server.NodeServer;
 import org.halosky.server.ZkServerManager;
 import org.halosky.storage.StorageManager;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * packageName org.halosky.shard
@@ -99,6 +98,37 @@ public class ShardManager {
         }
     }
 
+
+
+    public List<JSONObject> shardingQuery(String indexName,String dsl) throws Exception {
+        log.info("[ShardManager] start join sharding-query index name: [{}] dsl: [{}]",indexName,dsl);
+
+        ZkServerManager.ClusterNodeInfo clusterNodes = this.zkServerManager.clusterNodes();
+        if(config.getIndexConfig().getNumberOfShards() > clusterNodes.nodes().size()) {
+            throw new IllegalArgumentException("shard of number ["+config.getIndexConfig().getNumberOfShards()+"] current cluster node size ["+clusterNodes.nodes().size()+"]");
+        }
+
+        List<String> strings = clusterNodes.nodes().subList(0, config.getIndexConfig().getNumberOfShards());
+
+        List<JSONObject> ans = new ArrayList<>();
+
+        for (String nodeName : strings) {
+            if (nodeName.equals(config.getNodeConfig().getName())) {
+                // current node
+                StorageManager.QueryResult query = (StorageManager.QueryResult)storageManager.query(indexName, dsl);
+                if(Objects.nonNull(query.docs()) && !query.docs().isEmpty()) {
+                    ans.addAll(query.docs());
+                }
+            } else {
+                String s = nodeServer.syncQueryDocument(indexName, dsl, nodeName);
+                if(!StringUtil.isEmpty(s)) {
+                    List<JSONObject> documents = JSON.parseArray(s, JSONObject.class);
+                    ans.addAll(documents);
+                }
+            }
+        }
+        return ans;
+    }
 
 
 

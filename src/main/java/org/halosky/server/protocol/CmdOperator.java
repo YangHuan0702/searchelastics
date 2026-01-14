@@ -17,6 +17,7 @@ public enum CmdOperator {
     FET_DOCUMENT(4,"query doc"),
     ADD_INDEX(5,"add the index"),
     DEL_INDEX(6,"delete the index"),
+    RES_DOCS(7,"result for FET_DOCUMENT")
 
     ;
 

@@ -82,7 +82,7 @@ public class DocumentHandler implements AbstractHandler {
         return storageManager.addDocument(indexName,jsonObject);
     }
 
-    private Object queryDocument(String indexName, String queryJsonString) {
+    private Object queryDocument(String indexName, String queryJsonString) throws Exception {
         log.info("[DocumentHandler] index-query processing. query index name [{}], query-json DSL is [{}]",indexName,queryJsonString);
         return storageManager.query(indexName,queryJsonString);
     }

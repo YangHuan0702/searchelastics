@@ -99,6 +99,7 @@ public class StorageManager {
         for (JSONObject object : jsonObject) {
             addDocument(indexName,object);
         }
+        this.indexMap.get(indexName).flushAfterWrite();
     }
 
     public Object addDocument(String indexName, JSONObject jsonObject) throws IOException {
@@ -115,7 +116,7 @@ public class StorageManager {
             document = conversionToMap(jsonObject);
 
             count = indexMap.get(indexName).getIndexWriter().addDocument(document);
-
+            indexMap.get(indexName).getIndexWriter().commit();
         } finally {
             lock.writeLock().unlock();
         }
@@ -230,18 +231,14 @@ public class StorageManager {
     }
 
 
-    public record QueryResult(List<Document> docs, TotalHits totalHits) {
+    public record QueryResult(List<JSONObject> docs, TotalHits totalHits) {
     }
 
-    ;
-
-
-    public Object query(String indexName, String json) {
+    public Object query(String indexName, String json) throws Exception {
         log.info("[StorageManager] query handler indexName:[{}], queryJson:[{}]", indexName, json);
-        if (!indexMap.containsKey(indexName) || Objects.isNull(json) || json.isEmpty()) {
-            throw new NullPointerException("index is not exists or query for json-params is empty.");
-        }
+        ifAboutCreateIndex(indexName);
 
+        IndexSearcher indexSearcher = indexMap.get(indexName).getSearcherManager().acquire();
         try {
             ObjectMapper mapper = new ObjectMapper();
             JsonNode jsonNode = mapper.readTree(json);
@@ -254,21 +251,29 @@ public class StorageManager {
 
             Query luceneQuery = ast.toLuceneQuery();
 
-            IndexSearcher indexSearcher = indexMap.get(indexName).getIndexSearcher();
             TopDocs search = indexSearcher.search(luceneQuery, 10);
 
             ScoreDoc[] scoreDocs = search.scoreDocs;
 
             TotalHits totalHits = search.totalHits;
             StoredFields storedFields = indexSearcher.storedFields();
-            List<Document> docs = new ArrayList<>();
+            List<JSONObject> docs = new ArrayList<>();
             for (ScoreDoc scoreDoc : scoreDocs) {
                 Document hitDoc = storedFields.document(scoreDoc.doc);
-                docs.add(hitDoc);
+                List<IndexableField> fields = hitDoc.getFields();
+                JSONObject jsonObject = new JSONObject();
+                for (IndexableField field : fields) {
+                    jsonObject.put(field.name(),hitDoc.get(field.name()));
+                }
+
+                jsonObject.put("_node",config.getNodeConfig().getName());
+                docs.add(jsonObject);
             }
             return new QueryResult(docs, totalHits);
         } catch (Exception e) {
             log.error("[StorageManager] query exception, query index name [{}] DSL [{}] : {}", indexName, json, e.getMessage(), e);
+        } finally {
+            indexMap.get(indexName).getSearcherManager().release(indexSearcher);
         }
         return new QueryResult(null, null);
     }
